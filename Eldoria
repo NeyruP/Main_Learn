@@ -1,33 +1,19 @@
 import random
-
 import time
-
 import pickle
-
 import sys
-
 import os
-
 import shutil
-
 import tempfile
-
 import threading
-
 import http.server
-
 import socketserver
-
 import webbrowser
-
 import select
-
 import glob
  
 #========================
-
 #------ SAVE SYSTEM ------
-
 #========================
 
 def player_to_dict(player):
@@ -294,9 +280,7 @@ def serve_file_for_download(filepath, host='127.0.0.1', port=0, timeout=60):
 
  
 #========================
-
 #------ LORE ------
-
 #========================
  
 LORE_INTRO = [
@@ -376,9 +360,7 @@ ACHIEVEMENT_DEFS = {
 }
  
 #========================
-
 #------ UTIL ------
-
 #========================
  
 def slow_print(text, delay=0.08):
@@ -398,9 +380,7 @@ def slow_print(text, delay=0.08):
     time.sleep(0.01)
  
 #========================
-
 #------ PET / COMPANION ------
-
 #========================
  
 class Pet:
@@ -434,9 +414,7 @@ class Pet:
             print(f'🐾 {self.name} subiu para Nív. {self.level}!')
  
 #========================
-
 #------ PLAYER ------
-
 #========================
  
 class Player:
@@ -618,9 +596,7 @@ class Player:
                     self.active_quests.remove(q)
  
 #========================
-
 #------ VILA ------
-
 #========================
  
 def blacksmith(p):
@@ -924,9 +900,7 @@ def quest_board(p):
         pass
  
 #===========================================
-
 #------ COMBATE (COM DEFESA ADAPTADA) ------
-
 #===========================================
  
 def aplicar_encantamentos_armor(armadura, dano_reduzido, player):
@@ -1178,9 +1152,7 @@ def combat(p, enemy, hp, dmg_range, boss=False):
     return True
  
 #========================
-
 #------ RANDOM EVENTS ------
-
 #========================
  
 def dungeon_random_event(p, floor):
@@ -1250,9 +1222,7 @@ def dungeon_random_event(p, floor):
         slow_print(random.choice(LORE_SCROLLS))
  
 #========================
-
 #------ DUNGEON ------
-
 #========================
  
 def dungeon(p):
@@ -1328,9 +1298,7 @@ def dungeon(p):
         elif act == '3': break
  
 #========================
-
 #------ ACHIEVEMENTS ------
-
 #========================
  
 def unlock_achievement(p, key):
@@ -1354,9 +1322,7 @@ def show_achievements(p):
         print(f'- {v["title"]}: {v["desc"]}')
  
 #========================
-
 #------ MAIN ------
-
 #========================
  
 def main():
