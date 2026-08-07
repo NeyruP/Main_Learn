@@ -56,6 +56,30 @@ BOSS_LORE = {
 }
 
 #========================
+#------ GAME DATA ------
+#========================
+
+ENEMY_TYPES = [
+    {'name': 'Lobo das Sombras', 'hp_base': 40, 'dmg_base': (5, 10), 'drop': 'Pele de Lobo'},
+    {'name': 'Goblin Sarnento', 'hp_base': 30, 'dmg_base': (3, 8), 'drop': 'Dente de Goblin'},
+    {'name': 'Aranha Enorme', 'hp_base': 35, 'dmg_base': (4, 9), 'drop': 'Veneno Grosso'},
+    {'name': 'Trovão Errante', 'hp_base': 45, 'dmg_base': (6, 12), 'drop': 'Fragmento de Trovão'},
+]
+
+QUESTS = [
+    {'id': 1, 'titulo': 'Caçar Lobos', 'descricao': 'Derrote 3 Lobos das Sombras.', 'target': {'enemy_name': 'Lobo das Sombras', 'count': 3}, 'recompensa_money': 120, 'recompensa_exp': 60},
+    {'id': 2, 'titulo': 'Coletar Veneno', 'descricao': 'Traga 2 Venenos Grossos.', 'target': {'item': 'Veneno Grosso', 'count': 2}, 'recompensa_money': 80, 'recompensa_exp': 40},
+    {'id': 3, 'titulo': 'Troféu do Chefe', 'descricao': 'Derrote um chefe e entregue sua cabeça.', 'target': {'boss': True, 'count': 1}, 'recompensa_money': 300, 'recompensa_exp': 200},
+]
+
+ACHIEVEMENT_DEFS = {
+    'first_kill': {'title': 'Iniciante', 'desc': 'Derrote seu primeiro inimigo.'},
+    'first_pet': {'title': 'Amigo Fiel', 'desc': 'Adote um companheiro.'},
+    'blacksmith_upgraded': {'title': 'Forjado', 'desc': 'Melhore algo no ferreiro.'},
+    'found_treasure': {'title': 'Explorador', 'desc': 'Encontre um baú no dungeon.'}
+}
+
+#========================
 #------ UTIL ------
 #========================
 
@@ -67,6 +91,28 @@ def slow_print(text, delay=0.08):
     sys.stdout.write('\n')
     sys.stdout.flush()
     time.sleep(0.01)
+
+#========================
+#------ PET / COMPANION ------
+#========================
+
+class Pet:
+    def __init__(self, name, kind='Familiar'):
+        self.name = name
+        self.kind = kind
+        self.level = 1
+        self.exp = 0
+
+    def assist_damage(self, player_level):
+        # Pet deals small damage based on level
+        return random.randint(2, 5) + self.level + player_level
+
+    def gain_exp(self, amount):
+        self.exp += amount
+        while self.exp >= 50 * self.level:
+            self.exp -= 50 * self.level
+            self.level += 1
+            print(f'🐾 {self.name} subiu para Nív. {self.level}!')
 
 #========================
 #------ PLAYER ------
@@ -91,25 +137,38 @@ class Player:
 
         self.inventory = {
             'pocoes': 1,
-            'cabecas_boss': []
+            'cabecas_boss': [],
+            'drops': {},  # armazenamento para drops (pele, veneno, etc.)
         }
 
         self.skills = [
             {'nome': 'Golpe de Mana', 'custo': 10}
         ]
 
+        # Companion
+        self.pet = None
+
+        # Quests
+        self.active_quests = []  # stores quest dicts with progress
+        self.completed_quests = []
+
+        # Achievements
+        self.achievements = {}
+
     def display_status(self):
         # [SISTEMA DE ARMADURA] - status
         armor_name = self.armor['nome'] if self.armor else 'Nenhuma'
         armor_lvl = f" (Nív. {self.armor.get('level', 1)})" if self.armor else ""
         dur = f"{self.armor['durabilidade']}/{self.armor['max_durabilidade']}" if self.armor else '0/0'
+        pet_name = f' | 🐾 {self.pet.name} Lv{self.pet.level}' if self.pet else ''
+        ach_count = len(self.achievements)
         print(
             f'\n👤 {self.name} | LVL {self.level} | '
             f'❤️ {self.health}/{self.max_health} | '
             f'✨ {self.mana}/{self.max_mana} | '
             f'💰 {self.money}g\n'
             f'⚔️ {self.weapon} Lvl.{self.weapon_level} | '
-            f'🛡️ {armor_name}{armor_lvl} (Dur: {dur})'
+            f'🛡️ {armor_name}{armor_lvl} (Dur: {dur}){pet_name} | 🏆 {ach_count}'
         )
 
     def gain_exp(self, amount):
@@ -129,6 +188,38 @@ class Player:
             if self.level == 5:
                 self.skills.append({'nome': 'Explosão Estelar', 'custo': 25})
 
+        # pet gets a bit of exp when player levels or gains exp
+        if self.pet:
+            self.pet.gain_exp(int(amount / 4))
+
+    def add_drop(self, item, count=1):
+        self.inventory['drops'][item] = self.inventory['drops'].get(item, 0) + count
+
+    def check_quests_progress(self, enemy_name=None, drop_item=None, boss_killed=False):
+        for q in list(self.active_quests):
+            prog = q.setdefault('progress', 0)
+            target = q['target']
+            updated = False
+            if 'enemy_name' in target and enemy_name == target['enemy_name']:
+                q['progress'] = prog + 1
+                updated = True
+            if 'item' in target and drop_item == target['item']:
+                q['progress'] = prog + 1
+                updated = True
+            if 'boss' in target and boss_killed and target['boss']:
+                q['progress'] = prog + 1
+                updated = True
+
+            if updated:
+                print(f'📜 Progresso da missão "{q["titulo"]}": {q["progress"]}/{target.get("count",1)}')
+                if q['progress'] >= target.get('count', 1):
+                    # complete
+                    self.money += q['recompensa_money']
+                    self.gain_exp(q['recompensa_exp'])
+                    print(f'🏁 Missão completa: {q["titulo"]}! +{q["recompensa_money"]}g +{q["recompensa_exp"]} EXP')
+                    self.completed_quests.append(q)
+                    self.active_quests.remove(q)
+
 #========================
 #------ VILA ------
 #========================
@@ -136,7 +227,7 @@ class Player:
 def blacksmith(p):
     slow_print('⚒️ Ferreiro: aço não mente.')
     # [SISTEMA DE ARMADURA] - Opções de Compra, Upgrade e Reparo
-    print('1. Comprar Armas | 2. Comprar Armaduras | 3. Upgrade | 4. Reparar Armadura (50g) | 5. Sair')
+    print('1. Comprar Armas | 2. Comprar Armaduras | 3. Upgrade/Enchant | 4. Reparar Armadura (50g) | 5. Sair')
     op = input('> ')
 
     if op == '1':
@@ -148,6 +239,8 @@ def blacksmith(p):
         elif c == '2' and p.money >= 200:
             p.money -= 200
             p.weapon = 'Machado'
+        if c in ['1','2']:
+            unlock_achievement(p, 'blacksmith_upgraded')
 
     elif op == '2':
         # [SISTEMA DE ARMADURA] - Tipos de Armadura para compra
@@ -157,35 +250,58 @@ def blacksmith(p):
         c = input('> ')
         if c == '1' and p.money >= 150:
             p.money -= 150
-            p.armor = {'nome': 'Cota de Malha', 'defesa': 2, 'durabilidade': 100, 'max_durabilidade': 100, 'efeito_especial': None, 'level': 1}
+            p.armor = {'nome': 'Cota de Malha', 'defesa': 2, 'durabilidade': 100, 'max_durabilidade': 100, 'efeito_especial': None, 'level': 1, 'enchantments': []}
         elif c == '2' and p.money >= 300:
             p.money -= 300
-            p.armor = {'nome': 'Armadura de Espinhos', 'defesa': 4, 'durabilidade': 120, 'max_durabilidade': 120, 'efeito_especial': 'espinhos_caoticos', 'level': 1}
+            p.armor = {'nome': 'Armadura de Espinhos', 'defesa': 4, 'durabilidade': 120, 'max_durabilidade': 120, 'efeito_especial': 'espinhos_caoticos', 'level': 1, 'enchantments': []}
         elif c == '3' and p.money >= 500:
             p.money -= 500
-            p.armor = {'nome': 'Manto Vampírico', 'defesa': 6, 'durabilidade': 150, 'max_durabilidade': 150, 'efeito_especial': 'sede_de_sangue', 'level': 1}
+            p.armor = {'nome': 'Manto Vampírico', 'defesa': 6, 'durabilidade': 150, 'max_durabilidade': 150, 'efeito_especial': 'sede_de_sangue', 'level': 1, 'enchantments': []}
 
     elif op == '3':
-        print('O que deseja melhorar? (Custo: 100g)')
-        print('1. Arma | 2. Armadura')
+        print('O que deseja melhorar? (Custo: 100g para upgrade, 200g para encantar)')
+        print('1. Arma | 2. Armadura (Upgrade) | 3. Encantar Armadura')
         u = input('> ')
-        if p.money >= 100:
-            if u == '1':
-                p.money -= 100
-                p.weapon_level += 1
-                print(f'⚔️ Sua {p.weapon} agora é Nível {p.weapon_level}!')
-            elif u == '2':
-                # [SISTEMA DE ARMADURA] - Lógica de Upgrade
+        if u == '1' and p.money >= 100:
+            p.money -= 100
+            p.weapon_level += 1
+            print(f'⚔️ Sua {p.weapon} agora é Nível {p.weapon_level}!')
+            unlock_achievement(p, 'blacksmith_upgraded')
+        elif u == '2':
+            if p.money >= 100:
                 if p.armor:
                     p.money -= 100
                     p.armor['level'] = p.armor.get('level', 1) + 1
                     p.armor['defesa'] += 3
                     p.armor['max_durabilidade'] += 20
                     print(f'🛡️ Sua {p.armor["nome"]} agora é Nível {p.armor["level"]}! (Defesa +3)')
+                    unlock_achievement(p, 'blacksmith_upgraded')
                 else:
                     print('❌ Você não tem armadura para melhorar.')
-        else:
-            print('❌ Dinheiro insuficiente.')
+            else:
+                print('❌ Dinheiro insuficiente.')
+        elif u == '3':
+            if not p.armor:
+                print('❌ Sem armadura para encantar.')
+            elif p.money < 200:
+                print('❌ Dinheiro insuficiente para encantar.')
+            else:
+                print('Escolha um encantamento: 1.Fogo (+2 def) | 2.Vida (cura em hits) | 3.Espinhos+ (retaliação)')
+                e = input('> ')
+                if e == '1':
+                    p.money -= 200
+                    p.armor.setdefault('enchantments', []).append('fogo')
+                    p.armor['defesa'] += 2
+                    print('✨ Encantamento de Fogo adicionado!')
+                elif e == '2':
+                    p.money -= 200
+                    p.armor.setdefault('enchantments', []).append('vida')
+                    print('✨ Encantamento de Vida adicionado!')
+                elif e == '3':
+                    p.money -= 200
+                    p.armor.setdefault('enchantments', []).append('espinhos_plus')
+                    print('✨ Encantamento de Espinhos adicionado!')
+                unlock_achievement(p, 'blacksmith_upgraded')
 
     elif op == '4' and p.money >= 50:
         # [SISTEMA DE ARMADURA] - Reparo de Durabilidade
@@ -195,6 +311,32 @@ def blacksmith(p):
             print('🛠️ Armadura como nova!')
         else:
             print('❌ Sem armadura para reparar.')
+
+# Companion management
+def companion_menu(p):
+    slow_print('🐾 Companheiro')
+    print('1. Adotar Companheiro | 2. Mostrar Companheiro | 3. Alimentar (level up 50g) | 4. Sair')
+    c = input('> ')
+    if c == '1':
+        if p.pet:
+            print('❌ Você já tem um companheiro.')
+        else:
+            name = input('Nome do companheiro: ')
+            p.pet = Pet(name)
+            print(f'🐾 {name} juntou-se à sua aventura!')
+            unlock_achievement(p, 'first_pet')
+    elif c == '2':
+        if p.pet:
+            print(f'🐾 {p.pet.name} | Tipo: {p.pet.kind} | Nív.: {p.pet.level} | EXP: {p.pet.exp}')
+        else:
+            print('❌ Nenhum companheiro.')
+    elif c == '3':
+        if p.pet and p.money >= 50:
+            p.money -= 50
+            p.pet.gain_exp(60)
+            print(f'🍖 {p.pet.name} está mais forte!')
+        else:
+            print('❌ Sem companheiro ou dinheiro.')
 
 def alchemist(p):
     slow_print('🧪 Alquimista: cura ou mana?')
@@ -209,19 +351,61 @@ def alchemist(p):
 
 def guild(p):
     slow_print('📜 Guilda')
-    print('1. Vender troféus | 2. Missão')
+    print('1. Vender troféus | 2. Missão | 3. Quadro de Missões | 4. Sair')
     c = input('> ')
     if c == '1':
         if p.inventory['cabecas_boss']:
             p.money += len(p.inventory['cabecas_boss']) * 100
             p.inventory['cabecas_boss'] = []
     elif c == '2':
+        # small default mission
         p.money += 50
         p.gain_exp(20)
+    elif c == '3':
+        quest_board(p)
+
+def quest_board(p):
+    slow_print('📌 Quadro de Missões')
+    print('Missões disponíveis:')
+    for q in QUESTS:
+        # don't show already active or completed
+        if any(a['id'] == q['id'] for a in p.active_quests): continue
+        if any(c['id'] == q['id'] for c in p.completed_quests): continue
+        print(f'{q["id"]}. {q["titulo"]} - {q["descricao"]} (Recompensa: {q["recompensa_money"]}g, {q["recompensa_exp"]} EXP)')
+    print('Digite o número da missão para aceitar, ou Enter para sair.')
+    choose = input('> ')
+    try:
+        qid = int(choose)
+        q = next((x for x in QUESTS if x['id']==qid), None)
+        if q:
+            p.active_quests.append(q.copy())
+            print(f'✅ Missão "{q["titulo"]}" aceita.')
+    except:
+        pass
 
 #===========================================
 #------ COMBATE (COM DEFESA ADAPTADA) ------
 #===========================================
+
+def aplicar_encantamentos_armor(armadura, dano_reduzido, player):
+    # Aplica efeitos extras de encantamentos
+    if not armadura:
+        return dano_reduzido
+
+    if 'vida' in armadura.get('enchantments', []):
+        # chance de curar quando toma dano
+        if random.randint(1,100) <= 20:
+            cura = min(player.max_health - player.health, 10)
+            player.health += cura
+            print(f'✨ Encantamento de Vida cura +{cura} HP!')
+    if 'espinhos_plus' in armadura.get('enchantments', []):
+        if random.randint(1,100) <= 25:
+            print('💥 Encantamento de Espinhos causa dano de retorno!')
+            # does not alter incoming damage, but will be handled as effect elsewhere
+    if 'fogo' in armadura.get('enchantments', []):
+        # proteção extra já foi aplicada via defesa stat
+        pass
+    return dano_reduzido
 
 def calcular_defesa_integrada(dano_inimigo, player):
     # [SISTEMA DE ARMADURA] - Efeitos especias, dano, defesa
@@ -254,19 +438,37 @@ def calcular_defesa_integrada(dano_inimigo, player):
     if not efeito_ativado:
         print(f'⚔️ Defesa: {armadura["defesa"]} | Dano final: {dano_reduzido}')
 
+    # apply enchantments effects
+    dano_reduzido = aplicar_encantamentos_armor(armadura, dano_reduzido, player)
     return dano_reduzido
+
+def spawn_enemy(floor):
+    # choose enemy type and scale with floor
+    base = random.choice(ENEMY_TYPES)
+    name = base['name']
+    hp = base['hp_base'] + floor * 3
+    dmg_min, dmg_max = base['dmg_base']
+    dmg_range = (dmg_min + floor//4, dmg_max + floor//3)
+    return {'name': name, 'hp': hp, 'dmg_range': dmg_range, 'drop': base.get('drop')}
 
 def combat(p, enemy, hp, dmg_range, boss=False):
     extra_defense = 0
-    if boss: slow_print(f'🔥 {enemy}')
+    # enemy can be string name or dict
+    enemy_name = enemy if isinstance(enemy, str) else enemy.get('name', str(enemy))
+    if boss: slow_print(f'🔥 {enemy_name}')
 
     while hp > 0 and p.health > 0:
-        print(f'\n{enemy} HP:{hp} | Player HP:{p.health}')
+        print(f'\n{enemy_name} HP:{hp} | Player HP:{p.health}')
         print('1.Atacar 2.Magia 3.Poção 4.Defender 5.Fugir')
         c = input('> ')
 
         if c == '1':
             dmg = random.randint(8, 18) * p.weapon_level
+            # pet assists on attack
+            if p.pet:
+                pet_dmg = p.pet.assist_damage(p.level)
+                print(f'🐾 {p.pet.name} ajuda! +{pet_dmg} dano')
+                hp -= pet_dmg
             hp -= dmg
         elif c == '2':
             for i, s in enumerate(p.skills): print(f'{i}. {s["nome"]}')
@@ -289,13 +491,79 @@ def combat(p, enemy, hp, dmg_range, boss=False):
         if hp > 0:
             raw_dmg = random.randint(*dmg_range)
             final_dmg = calcular_defesa_integrada(raw_dmg, p) - extra_defense
+            # possible armor enchantment retaliation
+            if p.armor and 'espinhos_plus' in p.armor.get('enchantments', []):
+                if random.randint(1,100) <= 25:
+                    print('💥 Seu espinhos_plus causa dano de retorno!')
+                    # if enemy was dict, enemy may take damage
+                    try:
+                        hp -= int(raw_dmg * 0.25)
+                    except:
+                        pass
             p.health -= max(0, final_dmg)
             extra_defense = 0
 
     if p.health <= 0: return False
-    if boss: p.inventory['cabecas_boss'].append(enemy)
+
+    # on victory, handle drops
+    # if enemy arg is dict, check drop
+    if isinstance(enemy, dict):
+        drop = enemy.get('drop')
+        if drop:
+            p.add_drop(drop, 1)
+            print(f'🎁 Obteve drop: {drop}')
+            p.check_quests_progress(drop_item=drop)
+    else:
+        # enemy was a string; still check quest by name
+        p.check_quests_progress(enemy_name=enemy_name)
+
+    if boss:
+        # store the boss head
+        p.inventory['cabecas_boss'].append(enemy_name)
+        p.check_quests_progress(boss_killed=True)
     p.gain_exp(100 if boss else 30)
+    # achievements: first kill
+    if 'first_kill' not in p.achievements:
+        unlock_achievement(p, 'first_kill')
     return True
+
+#========================
+#------ RANDOM EVENTS ------
+#========================
+
+def dungeon_random_event(p, floor):
+    r = random.randint(1, 100)
+    if r <= 15:
+        # merchant
+        slow_print('🧑‍🌾 Um mercador perdido aparece...')
+        print('1. Comprar Poção (10g) | 2. Comprar Reparo Rápido (30g) | 3. Nada')
+        c = input('> ')
+        if c == '1' and p.money >= 10:
+            p.money -= 10
+            p.inventory['pocoes'] += 1
+        elif c == '2' and p.money >= 30 and p.armor:
+            p.money -= 30
+            p.armor['durabilidade'] = min(p.armor['max_durabilidade'], p.armor['durabilidade'] + 40)
+    elif r <= 30:
+        # trap
+        slow_print('⚠️ Armadilha! Alguns espinhos saem do chão...')
+        dmg = random.randint(5, 15)
+        final = calcular_defesa_integrada(dmg, p)
+        p.health -= max(0, final)
+        print(f'Você sofreu {max(0, final)} de dano na armadilha.')
+    elif r <= 45:
+        # shrine
+        slow_print('🔮 Um santuário antigo... você sente uma presença benevolente.')
+        if random.randint(1,100) <= 50:
+            p.mana = min(p.max_mana, p.mana + 20)
+            print('✨ Mana restaurada parcialmente.')
+        else:
+            p.add_drop('Relíquia Antiga', 1)
+            print('🎁 Você encontrou uma Relíquia Antiga!')
+            unlock_achievement(p, 'found_treasure')
+    else:
+        # lore scroll
+        slow_print(random.choice(LORE_SCROLLS))
 
 #========================
 #------ DUNGEON ------
@@ -307,18 +575,25 @@ def dungeon(p):
         print(f'\n--- FLOOR {floor} ---')
         act = input('1.Avançar 2.Descansar 3.Sair ')
         if act == '1':
+            # random event chance before encounters
+            if random.randint(1,100) <= 25:
+                dungeon_random_event(p, floor)
+
             # [SISTEMA DE ARMADURA] - Garantido no 6
             if floor == 6 and not p.armor:
-                found = {'nome': 'Cota de Malha Velha', 'defesa': 2, 'durabilidade': 50, 'max_durabilidade': 80, 'efeito_especial': None, 'level': 1}
+                found = {'nome': 'Cota de Malha Velha', 'defesa': 2, 'durabilidade': 50, 'max_durabilidade': 80, 'efeito_especial': None, 'level': 1, 'enchantments': []}
                 slow_print(f'🎁 Você encontrou um baú no andar 6! Contém uma {found["nome"]}.')
                 if input('Equipar? 1.Sim 2.Não > ') == '1':
                     p.armor = found
                     print('🛡️ Armadura equipada!')
+                    unlock_achievement(p, 'found_treasure')
 
             r = random.randint(1, 100)
-            if r < 45:
-                combat(p, f'Monstro {floor}', 50 + floor * 8, (5, 10 + floor))
-            elif r < 75:
+            if r < 40:
+                # spawn a varied enemy
+                e = spawn_enemy(floor)
+                combat(p, e, e['hp'], e['dmg_range'])
+            elif r < 70:
                 slow_print(random.choice(LORE_SCROLLS))
             else:
                 boss = BOSS_LORE.get(floor)
@@ -334,6 +609,22 @@ def dungeon(p):
         elif act == '3': break
 
 #========================
+#------ ACHIEVEMENTS ------
+#========================
+
+def unlock_achievement(p, key):
+    if key in ACHIEVEMENT_DEFS and key not in p.achievements:
+        p.achievements[key] = ACHIEVEMENT_DEFS[key]
+        print(f'🏆 Conquista desbloqueada: {ACHIEVEMENT_DEFS[key]["title"]} - {ACHIEVEMENT_DEFS[key]["desc"]}')
+
+def show_achievements(p):
+    slow_print('🏅 Conquistas:')
+    if not p.achievements:
+        print('Nenhuma conquista ainda.')
+    for k, v in p.achievements.items():
+        print(f'- {v["title"]}: {v["desc"]}')
+
+#========================
 #------ MAIN ------
 #========================
 
@@ -345,7 +636,7 @@ def main():
 
     while p.health > 0:
         p.display_status()
-        print('\n1.Ferreiro 2.Alquimista 3.Guilda 4.Dungeon 5.Save 6.Sair')
+        print('\n1.Ferreiro 2.Alquimista 3.Guilda 4.Dungeon 5.Save 6.Sair 7.Companheiro 8.Conquistas')
         op = input('> ')
         if op == '1': blacksmith(p)
         elif op == '2': alchemist(p)
@@ -353,6 +644,8 @@ def main():
         elif op == '4': dungeon(p)
         elif op == '5': save_game(p)
         elif op == '6': break
+        elif op == '7': companion_menu(p)
+        elif op == '8': show_achievements(p)
 
 if __name__ == '__main__':
     main()
