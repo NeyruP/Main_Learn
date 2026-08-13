@@ -286,11 +286,8 @@ def serve_file_for_download(filepath, host='127.0.0.1', port=0, timeout=60):
 LORE_INTRO = [
 
     '--- AS CRÔNICAS DE ELDORIA ---',
-
     'O sol não brilha mais como antes...',
-
     'A Calamidade desperta nas profundezas...',
-
     'Eldoria aguarda um Sem-Nome.'
 
 ]
@@ -482,13 +479,9 @@ class Player:
                     # complete
 
                     self.money += q['recompensa_money']
-
                     self.gain_exp(q['recompensa_exp'])
-
                     print(f'🏁 Missão completa: {q["titulo"]}! +{q["recompensa_money"]}g +{q["recompensa_exp"]} EXP')
-
                     self.completed_quests.append(q)
-
                     self.active_quests.remove(q)
  
 #========================
@@ -496,321 +489,169 @@ class Player:
 #========================
  
 def blacksmith(p):
-
     slow_print('⚒️ Ferreiro: aço não mente.')
-
     # [SISTEMA DE ARMADURA] - Opções de Compra, Upgrade e Reparo
-
     print('1. Comprar Armas | 2. Comprar Armaduras | 3. Upgrade/Enchant | 4. Reparar Armadura (50g) | 5. Sair')
-
     op = input('> ')
- 
     if op == '1':
-
         print('1. Espada (100g) | 2. Machado (200g)')
-
         c = input('> ')
-
         if c == '1' and p.money >= 100:
-
             p.money -= 100
-
             p.weapon = 'Espada'
-
         elif c == '2' and p.money >= 200:
-
             p.money -= 200
-
             p.weapon = 'Machado'
-
         if c in ['1','2']:
-
             unlock_achievement(p, 'blacksmith_upgraded')
- 
     elif op == '2':
-
         # [SISTEMA DE ARMADURA] - Tipos de Armadura para compra
-
         print('1. Cota de Malha (150g) [Def: 2]')
-
         print('2. Armadura de Espinhos (300g) [Def: 4]')
-
         print('3. Manto Vampírico (500g) [Def: 6]')
-
         c = input('> ')
-
         if c == '1' and p.money >= 150:
-
             p.money -= 150
-
             p.armor = {'nome': 'Cota de Malha', 'defesa': 2, 'durabilidade': 100, 'max_durabilidade': 100, 'efeito_especial': None, 'level': 1, 'enchantments': []}
-
         elif c == '2' and p.money >= 300:
-
             p.money -= 300
-
             p.armor = {'nome': 'Armadura de Espinhos', 'defesa': 4, 'durabilidade': 120, 'max_durabilidade': 120, 'efeito_especial': 'espinhos_caoticos', 'level': 1, 'enchantments': []}
-
         elif c == '3' and p.money >= 500:
-
             p.money -= 500
-
             p.armor = {'nome': 'Manto Vampírico', 'defesa': 6, 'durabilidade': 150, 'max_durabilidade': 150, 'efeito_especial': 'sede_de_sangue', 'level': 1, 'enchantments': []}
- 
     elif op == '3':
-
         print('O que deseja melhorar? (Custo: 100g para upgrade, 200g para encantar)')
-
         print('1. Arma | 2. Armadura (Upgrade) | 3. Encantar Armadura')
-
         u = input('> ')
-
         if u == '1' and p.money >= 100:
-
             p.money -= 100
-
             p.weapon_level += 1
-
             print(f'⚔️ Sua {p.weapon} agora é Nível {p.weapon_level}!')
-
             unlock_achievement(p, 'blacksmith_upgraded')
-
         elif u == '2':
-
             if p.money >= 100:
-
                 if p.armor:
-
                     p.money -= 100
-
                     p.armor['level'] = p.armor.get('level', 1) + 1
-
                     p.armor['defesa'] += 3
-
                     p.armor['max_durabilidade'] += 20
-
                     print(f'🛡️ Sua {p.armor["nome"]} agora é Nível {p.armor["level"]}! (Defesa +3)')
-
                     unlock_achievement(p, 'blacksmith_upgraded')
-
                 else:
-
                     print('❌ Você não tem armadura para melhorar.')
-
             else:
-
                 print('❌ Dinheiro insuficiente.')
-
         elif u == '3':
-
             if not p.armor:
-
                 print('❌ Sem armadura para encantar.')
-
             elif p.money < 200:
-
                 print('❌ Dinheiro insuficiente para encantar.')
-
             else:
-
                 print('Escolha um encantamento: 1.Fogo (+2 def) | 2.Vida (cura em hits) | 3.Espinhos+ (retaliação)')
-
                 e = input('> ')
-
                 if e == '1':
-
                     p.money -= 200
-
                     p.armor.setdefault('enchantments', []).append('fogo')
-
                     p.armor['defesa'] += 2
-
                     print('✨ Encantamento de Fogo adicionado!')
-
                 elif e == '2':
-
                     p.money -= 200
-
                     p.armor.setdefault('enchantments', []).append('vida')
-
                     print('✨ Encantamento de Vida adicionado!')
-
                 elif e == '3':
-
                     p.money -= 200
-
                     p.armor.setdefault('enchantments', []).append('espinhos_plus')
-
                     print('✨ Encantamento de Espinhos adicionado!')
-
                 unlock_achievement(p, 'blacksmith_upgraded')
- 
     elif op == '4' and p.money >= 50:
-
         # [SISTEMA DE ARMADURA] - Reparo de Durabilidade
-
         if p.armor:
-
-            p.money -= 50
-
+            p.money == 50
             p.armor['durabilidade'] = p.armor['max_durabilidade']
-
             print('🛠️ Armadura como nova!')
-
         else:
-
             print('❌ Sem armadura para reparar.')
- 
 # Companion management
-
 def companion_menu(p):
-
     slow_print('🐾 Companheiro')
-
     print('1. Adotar Companheiro | 2. Mostrar Companheiro | 3. Alimentar (level up 50g) | 4. Sair')
-
     c = input('> ')
-
     if c == '1':
-
         if p.pet:
-
             print('❌ Você já tem um companheiro.')
-
         else:
-
             name = input('Nome do companheiro: ')
-
             p.pet = Pet(name)
-
             print(f'🐾 {name} juntou-se à sua aventura!')
-
             unlock_achievement(p, 'first_pet')
-
     elif c == '2':
-
         if p.pet:
-
             print(f'🐾 {p.pet.name} | Tipo: {p.pet.kind} | Nív.: {p.pet.level} | EXP: {p.pet.exp}')
-
         else:
-
             print('❌ Nenhum companheiro.')
-
     elif c == '3':
-
         if p.pet and p.money >= 50:
-
             p.money -= 50
-
             p.pet.gain_exp(60)
-
             print(f'🍖 {p.pet.name} está mais forte!')
-
         else:
-
             print('❌ Sem companheiro ou dinheiro.')
- 
 def alchemist(p):
-
     slow_print('🧪 Alquimista: cura ou mana?')
-
     print('1. Poção (30g) | 2. Mana (40g)')
-
     c = input('> ')
-
     if c == '1' and p.money >= 30:
-
         p.money -= 30
 
         p.inventory['pocoes'] += 1
-
     elif c == '2' and p.money >= 40:
-
         p.money -= 40
-
         p.mana = p.max_mana
- 
 def guild(p):
-
     slow_print('📜 Guilda')
-
     print('1. Vender troféus | 2. Missão | 3. Quadro de Missões | 4. Sair')
-
     c = input('> ')
-
     if c == '1':
-
         if p.inventory['cabecas_boss']:
-
             p.money += len(p.inventory['cabecas_boss']) * 100
-
             p.inventory['cabecas_boss'] = []
-
     elif c == '2':
 
         # small default mission
-
         p.money += 50
-
         p.gain_exp(20)
-
     elif c == '3':
-
         quest_board(p)
- 
 def quest_board(p):
-
     slow_print('📌 Quadro de Missões')
 
     print('Missões disponíveis:')
-
     for q in QUESTS:
-
         # don't show already active or completed
-
         if any(a['id'] == q['id'] for a in p.active_quests): continue
-
         if any(c['id'] == q['id'] for c in p.completed_quests): continue
-
         print(f'{q["id"]}. {q["titulo"]} - {q["descricao"]} (Recompensa: {q["recompensa_money"]}g, {q["recompensa_exp"]} EXP)')
-
     print('Digite o número da missão para aceitar, ou Enter para sair.')
-
     choose = input('> ')
-
     try:
-
         qid = int(choose)
-
         q = next((x for x in QUESTS if x['id']==qid), None)
-
         if q:
-
             p.active_quests.append(q.copy())
-
             print(f'✅ Missão "{q["titulo"]}" aceita.')
-
     except:
-
         pass
- 
+
 #===========================================
 #------ COMBATE (COM DEFESA ADAPTADA) ------
 #===========================================
  
 def aplicar_encantamentos_armor(armadura, dano_reduzido, player):
-
     # Aplica efeitos extras de encantamentos
-
     if not armadura:
-
         return dano_reduzido
- 
     if 'vida' in armadura.get('enchantments', []):
-
         # chance de curar quando toma dano
-
         if random.randint(1,100) <= 20:
 
             cura = min(player.max_health - player.health, 10)
