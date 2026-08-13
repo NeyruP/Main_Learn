@@ -298,9 +298,7 @@ LORE_INTRO = [
 LORE_SCROLLS = [
 
     'O 18º andar não deveria existir.',
-
     'A luz aqui abaixo apodrece.',
-
     'A capital foi arrancada do mundo.',
 
 ]
@@ -308,13 +306,9 @@ LORE_SCROLLS = [
 BOSS_LORE = {
 
     1: ('Korg, o Cobrador', 'Você entrou sem pagar.'),
-
     2: ('Sombra Faminta', 'Eu sinto seu medo.'),
-
     9: ('Quimera Instável', 'Múltiplas almas, um corpo.'),
-
     15: ('Arquiduque do Pavor', 'Você não deveria ter chegado aqui.'),
-
     18: ('CALAMIDADE', 'O fim já começou.')
 
 }
@@ -328,11 +322,8 @@ BOSS_LORE = {
 ENEMY_TYPES = [
 
     {'name': 'Lobo das Sombras', 'hp_base': 40, 'dmg_base': (5, 10), 'drop': 'Pele de Lobo'},
-
     {'name': 'Goblin Sarnento', 'hp_base': 30, 'dmg_base': (3, 8), 'drop': 'Dente de Goblin'},
-
     {'name': 'Aranha Enorme', 'hp_base': 35, 'dmg_base': (4, 9), 'drop': 'Veneno Grosso'},
-
     {'name': 'Trovão Errante', 'hp_base': 45, 'dmg_base': (6, 12), 'drop': 'Fragmento de Trovão'},
 
 ]
@@ -340,9 +331,7 @@ ENEMY_TYPES = [
 QUESTS = [
 
     {'id': 1, 'titulo': 'Caçar Lobos', 'descricao': 'Derrote 3 Lobos das Sombras.', 'target': {'enemy_name': 'Lobo das Sombras', 'count': 3}, 'recompensa_money': 120, 'recompensa_exp': 60},
-
     {'id': 2, 'titulo': 'Coletar Veneno', 'descricao': 'Traga 2 Venenos Grossos.', 'target': {'item': 'Veneno Grosso', 'count': 2}, 'recompensa_money': 80, 'recompensa_exp': 40},
-
     {'id': 3, 'titulo': 'Troféu do Chefe', 'descricao': 'Derrote um chefe e entregue sua cabeça.', 'target': {'boss': True, 'count': 1}, 'recompensa_money': 300, 'recompensa_exp': 200},
 
 ]
@@ -350,11 +339,8 @@ QUESTS = [
 ACHIEVEMENT_DEFS = {
 
     'first_kill': {'title': 'Iniciante', 'desc': 'Derrote seu primeiro inimigo.'},
-
     'first_pet': {'title': 'Amigo Fiel', 'desc': 'Adote um companheiro.'},
-
     'blacksmith_upgraded': {'title': 'Forjado', 'desc': 'Melhore algo no ferreiro.'},
-
     'found_treasure': {'title': 'Explorador', 'desc': 'Encontre um baú no dungeon.'}
 
 }
@@ -368,15 +354,10 @@ def slow_print(text, delay=0.08):
     for c in text:
 
         sys.stdout.write(c)
-
         sys.stdout.flush()
-
         time.sleep(delay)
-
     sys.stdout.write('\n')
-
     sys.stdout.flush()
-
     time.sleep(0.01)
  
 #========================
@@ -386,31 +367,19 @@ def slow_print(text, delay=0.08):
 class Pet:
 
     def __init__(self, name, kind='Familiar'):
-
         self.name = name
-
         self.kind = kind
-
         self.level = 1
-
         self.exp = 0
  
     def assist_damage(self, player_level):
-
         # Pet deals small damage based on level
-
         return random.randint(2, 5) + self.level + player_level
- 
     def gain_exp(self, amount):
-
         self.exp += amount
-
         while self.exp >= 50 * self.level:
-
             self.exp -= 50 * self.level
-
             self.level += 1
-
             print(f'🐾 {self.name} subiu para Nív. {self.level}!')
  
 #========================
@@ -420,163 +389,90 @@ class Pet:
 class Player:
 
     def __init__(self, name):
-
         self.name = name
-
         self.max_health = 100
-
         self.health = 100
-
         self.max_mana = 50
-
         self.mana = 50
-
         self.money = 50
-
         self.weapon = 'Punhos'
-
         self.weapon_level = 1
-
         self.level = 1
-
         self.exp = 0
-
         self.exp_to_next = 50
- 
         # [SISTEMA DE ARMADURA] - Atributo inicial
-
         self.armor = None
- 
         self.inventory = {
-
             'pocoes': 1,
-
             'cabecas_boss': [],
-
             'drops': {},  # armazenamento para drops (pele, veneno, etc.)
-
         }
  
         self.skills = [
 
             {'nome': 'Golpe de Mana', 'custo': 10}
-
         ]
  
         # Companion
-
         self.pet = None
- 
         # Quests
-
         self.active_quests = []  # stores quest dicts with progress
-
         self.completed_quests = []
- 
         # Achievements
-
         self.achievements = {}
- 
     def display_status(self):
 
         # [SISTEMA DE ARMADURA] - status
-
         armor_name = self.armor['nome'] if self.armor else 'Nenhuma'
-
         armor_lvl = f" (Nív. {self.armor.get('level', 1)})" if self.armor else ""
-
         dur = f"{self.armor['durabilidade']}/{self.armor['max_durabilidade']}" if self.armor else '0/0'
-
         pet_name = f' | 🐾 {self.pet.name} Lv{self.pet.level}' if self.pet else ''
-
         ach_count = len(self.achievements)
-
         print(
 
             f'\n👤 {self.name} | LVL {self.level} | '
-
             f'❤️ {self.health}/{self.max_health} | '
-
             f'✨ {self.mana}/{self.max_mana} | '
-
             f'💰 {self.money}g\n'
-
             f'⚔️ {self.weapon} Lvl.{self.weapon_level} | '
-
             f'🛡️ {armor_name}{armor_lvl} (Dur: {dur}){pet_name} | 🏆 {ach_count}'
-
         )
  
     def gain_exp(self, amount):
-
         self.exp += amount
-
         print(f'✨ +{amount} EXP')
-
         while self.exp >= self.exp_to_next:
-
             self.exp -= self.exp_to_next
-
             self.level += 1
-
             self.exp_to_next = int(self.exp_to_next * 1.25)
-
             self.max_health += 15
-
             self.max_mana += 10
-
             self.health = self.max_health
-
             self.mana = self.max_mana
-
             slow_print(f'🎉 LEVEL UP {self.level}!')
-
             if self.level == 3:
-
                 self.skills.append({'nome': 'Escudo Solar', 'custo': 15})
-
             if self.level == 5:
-
                 self.skills.append({'nome': 'Explosão Estelar', 'custo': 25})
- 
         # pet gets a bit of exp when player levels or gains exp
-
         if self.pet:
-
             self.pet.gain_exp(int(amount / 4))
- 
     def add_drop(self, item, count=1):
-
         self.inventory['drops'][item] = self.inventory['drops'].get(item, 0) + count
- 
     def check_quests_progress(self, enemy_name=None, drop_item=None, boss_killed=False):
-
         for q in list(self.active_quests):
-
             prog = q.setdefault('progress', 0)
-
             target = q['target']
-
             updated = False
-
             if 'enemy_name' in target and enemy_name == target['enemy_name']:
-
                 q['progress'] = prog + 1
-
                 updated = True
-
             if 'item' in target and drop_item == target['item']:
-
                 q['progress'] = prog + 1
-
                 updated = True
-
             if 'boss' in target and boss_killed and target['boss']:
-
                 q['progress'] = prog + 1
-
                 updated = True
- 
             if updated:
 
                 print(f'📜 Progresso da missão "{q["titulo"]}": {q["progress"]}/{target.get("count",1)}')
