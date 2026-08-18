@@ -655,200 +655,105 @@ def aplicar_encantamentos_armor(armadura, dano_reduzido, player):
         if random.randint(1,100) <= 20:
 
             cura = min(player.max_health - player.health, 10)
-
             player.health += cura
-
             print(f'✨ Encantamento de Vida cura +{cura} HP!')
-
     if 'espinhos_plus' in armadura.get('enchantments', []):
-
         if random.randint(1,100) <= 25:
-
             print('💥 Encantamento de Espinhos causa dano de retorno!')
-
             # does not alter incoming damage, but will be handled as effect elsewhere
-
     if 'fogo' in armadura.get('enchantments', []):
-
-        # proteção extra já foi aplicada via defesa stat
-
+                             # proteção extra já foi aplicada via defesa stat
         pass
-
     return dano_reduzido
- 
 def calcular_defesa_integrada(dano_inimigo, player):
-
     # [SISTEMA DE ARMADURA] - Efeitos especias, dano, defesa
-
     if not player.armor:
-
         return dano_inimigo
- 
     armadura = player.armor
-
     if armadura['durabilidade'] <= 0:
-
         print(f'⚠️ Sua {armadura["nome"]} está em pedaços!')
-
         return dano_inimigo
- 
+
     dano_reduzido = max(0, dano_inimigo - armadura['defesa'])
-
     desgaste = max(1, int(dano_inimigo * 0.1))
-
-    armadura['durabilidade'] = max(0, armadura['durabilidade'] - desgaste)
- 
+    armadura['durabilidade'] = max(0, armadura['durabilidade'] - desgaste) 
     efeito_ativado = False
-
     if armadura.get('efeito_especial') == 'sede_de_sangue':
-
         if random.randint(1, 100) <= 25:
-
             efeito_ativado = True
-
             cura = dano_inimigo
-
             player.health = min(player.max_health, player.health + cura)
-
             print(f'🦇 {armadura["nome"]} suga a vitalidade! +{cura} HP!')
-
             dano_reduzido = 0
 
     elif armadura.get('efeito_especial') == 'espinhos_caoticos':
-
         if random.randint(1, 100) <= 20:
-
             efeito_ativado = True
-
             print(f'💥 {armadura["nome"]} reflete parte do ataque!')
-
-            dano_reduzido = int(dano_reduzido / 2)
- 
+            dano_reduzido = int(dano_reduzido / 2) 
     if not efeito_ativado:
-
-        print(f'⚔️ Defesa: {armadura["defesa"]} | Dano final: {dano_reduzido}')
- 
+        print(f'⚔️ Defesa: {armadura["defesa"]} | Dano final: {dano_reduzido}') 
     # apply enchantments effects
-
     dano_reduzido = aplicar_encantamentos_armor(armadura, dano_reduzido, player)
-
     return dano_reduzido
- 
 def spawn_enemy(floor):
-
     # choose enemy type and scale with floor
-
     base = random.choice(ENEMY_TYPES)
-
     name = base['name']
-
     hp = base['hp_base'] + floor * 3
-
     dmg_min, dmg_max = base['dmg_base']
-
     dmg_range = (dmg_min + floor//4, dmg_max + floor//3)
-
     return {'name': name, 'hp': hp, 'dmg_range': dmg_range, 'drop': base.get('drop')}
- 
 def combat(p, enemy, hp, dmg_range, boss=False):
-
     extra_defense = 0
-
     # enemy can be string name or dict
-
     enemy_name = enemy if isinstance(enemy, str) else enemy.get('name', str(enemy))
-
     if boss: slow_print(f'🔥 {enemy_name}')
- 
     while hp > 0 and p.health > 0:
-
         print(f'\n{enemy_name} HP:{hp} | Player HP:{p.health}')
-
         print('1.Atacar 2.Magia 3.Poção 4.Defender 5.Fugir')
-
         c = input('> ')
- 
         if c == '1':
-
             dmg = random.randint(8, 18) * p.weapon_level
-
             # pet assists on attack
-
             if p.pet:
-
                 pet_dmg = p.pet.assist_damage(p.level)
-
                 print(f'🐾 {p.pet.name} ajuda! +{pet_dmg} dano')
-
                 hp -= pet_dmg
-
             hp -= dmg
-
         elif c == '2':
-
             for i, s in enumerate(p.skills): print(f'{i}. {s["nome"]}')
-
             try:
-
                 idx = int(input('index: '))
-
                 skill = p.skills[idx]
-
                 if p.mana >= skill['custo']:
-
                     p.mana -= skill['custo']
-
                     hp -= (25 + p.level * 5)
-
                 else: print('Mana insuficiente!')
-
             except: pass
-
         elif c == '3' and p.inventory['pocoes'] > 0:
-
             p.inventory['pocoes'] -= 1
-
             p.health = min(p.max_health, p.health + 50)
-
         elif c == '4':
-
             extra_defense = random.randint(5, 15)
-
         elif c == '5' and not boss:
-
             if random.random() < 0.5: return 'fled'
- 
         if hp > 0:
-
             raw_dmg = random.randint(*dmg_range)
-
             final_dmg = calcular_defesa_integrada(raw_dmg, p) - extra_defense
-
             # possible armor enchantment retaliation
-
             if p.armor and 'espinhos_plus' in p.armor.get('enchantments', []):
-
                 if random.randint(1,100) <= 25:
-
                     print('💥 Seu espinhos_plus causa dano de retorno!')
-
                     # if enemy was dict, enemy may take damage
-
                     try:
-
                         hp -= int(raw_dmg * 0.25)
-
                     except:
-
                         pass
-
             p.health -= max(0, final_dmg)
-
             extra_defense = 0
- 
     if p.health <= 0: return False
- 
-    # on victory, handle drops
+# on victory, handle drops
 
     # if enemy arg is dict, check drop
 
