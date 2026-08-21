@@ -1,0 +1,55 @@
+#include <iostream>
+#include <string>
+using namespace std;
+int main() {
+// Status dos personagens
+string heroi = "Caçador";
+int hp_heroi = 100;
+int hp_monstro = 50;
+bool jogando = true;
+int escolha;
+cout << "--- A NOITE COMEÇA ---" << endl;
+cout << "Um monstro sombrio surge no castelo!" << endl;
+// Game Loop Simplificado
+while (jogando && hp_heroi > 0 && hp_monstro > 0) {
+cout << "
+Seu HP: " << hp_heroi << " | HP Monstro: " << hp_monstro << endl;
+cout << "1. Atacar com o Chicote
+2. Usar Água Benta
+3. Fugir
+";
+cout << "Escolha sua ação: ";
+// INPUT
+cin >> escolha;
+// UPDATE
+if (escolha == 1) {
+cout << "> Você golpeia com o chicote! Dano: 15" << endl;
+            hp_monstro -= 15;
+        } 
+else if (escolha == 2) {
+cout << "> Você lança Água Benta! Dano crítico: 25" << endl;
+            hp_monstro -= 25;
+        } 
+        } 
+        }
+else if (escolha == 3) {
+cout << "> Você foge pelas escadarias do castelo..." << endl;
+            jogando = false;
+continue;
+else {
+cout << "> Ação inválida!" << endl;
+// Turno do Inimigo
+if (hp_monstro > 0 && jogando) {
+cout << "O monstro ataca e te fere! Dano: 20" << endl;
+            hp_heroi -= 20;
+        }
+    }
+// Fim do Loop (Resultado)
+cout << "--- FIM DE JOGO ---" << endl;
+if (hp_monstro <= 0) {
+cout << "Vitória! O monstro foi derrotado e virou cinzas." << endl;
+    } else if (hp_heroi <= 0) {
+cout << "Derrota... Você não sobreviveu à noite." << endl;
+    }
+return 0;
+}
